@@ -55,11 +55,22 @@ function getCurrentDate() {
     });
 }
 
+function getWeatherIcon(id) {
+    if (id <= 232) return 'Thunderstorm.svg';
+    if (id <= 321) return 'drizzle.svg';
+    if (id <= 531) return 'HeavyDrizzle.svg';
+    if (id <= 622) return 'snow.svg';
+    if (id <= 781) return 'atmosphere.svg';
+    if (id === 800) return 'SunnyDayV3.svg';
+    if (id <= 804) return 'CloudyV3.svg';
+    return 'MostlyCloudyDayV2.svg';
+}
+
+
 async function getFetchData(endPoint, city) {
     const params = new URLSearchParams({
         city: city,
-        endPoint: endPoint,
-        ...options
+        type: endPoint  // Changed from 'endPoint' to 'type' to match your Netlify function
     });
 
     const apiURL = `/.netlify/functions/weather?${params}`;
@@ -68,14 +79,17 @@ async function getFetchData(endPoint, city) {
         const response = await fetch(apiURL);
         const data = await response.json();
 
-        if(!response.ok){
+        console.log('Response status:', response.status); // Debug log
+        console.log('Response data:', data); // Debug log
+
+        if (!response.ok) {
             throw new Error(data.error || `HTTP ${response.status}`);
         }
 
         return data;
     } catch (error) {
-        console.error('Fetching Error:', err);
-        throw new Error(`Failed to to fetch weather data :  ${err.message}`);
+        console.error('Fetching Error:', error);
+        throw new Error(`Failed to fetch weather data: ${error.message}`);
     }
 }
 
