@@ -47,6 +47,20 @@ function convertWindSpeed(speedMs, targetUnit) {
     }
 }
 
+function getWeatherIcon(id) {
+    if (id >= 200 && id <= 232) return 'thunderstorm.svg'; // Thunderstorm
+    if (id >= 300 && id <= 321) return 'HeavyDrizzle.svg'; // Drizzle
+    if (id >= 500 && id <= 531) return 'LightRainShowers.svg'; // Rain
+    if (id >= 600 && id <= 622) return 'snow.svg'; // Snow
+    if (id >= 701 && id <= 781) return 'atmosphere.svg'; // Atmosphere-like
+    if (id === 800) return 'SunnyDayV3.svg'; // Clear
+    if (id === 801) return 'D200PartlySunnyV2.svg'; // Few clouds
+    if (id === 802) return 'MostlyCloudyDayV2.svg'; // Scattered
+    if (id === 803 || id === 804) return 'CloudyV3.svg'; // Overcast
+    return 'clear.svg'; // fallback
+}
+
+
 function getCurrentDate() {
     return new Date().toLocaleDateString('en-GB', {
         weekday: 'short',
@@ -55,41 +69,17 @@ function getCurrentDate() {
     });
 }
 
-function getWeatherIcon(id) {
-    if (id <= 232) return 'Thunderstorm.svg';
-    if (id <= 321) return 'drizzle.svg';
-    if (id <= 531) return 'HeavyDrizzle.svg';
-    if (id <= 622) return 'snow.svg';
-    if (id <= 781) return 'atmosphere.svg';
-    if (id === 800) return 'SunnyDayV3.svg';
-    if (id <= 804) return 'CloudyV3.svg';
-    return 'MostlyCloudyDayV2.svg';
-}
-
 
 async function getFetchData(endPoint, city) {
-    const params = new URLSearchParams({
-        city: city,
-        type: endPoint  // Changed from 'endPoint' to 'type' to match your Netlify function
-    });
-
-    const apiURL = `/.netlify/functions/weather?${params}`;
+    const apiURL = `https://api.weather.teckexplorers.com/?city=${encodeURIComponent(city)}&endpoint=${endPoint}`;
 
     try {
         const response = await fetch(apiURL);
-        const data = await response.json();
-
-        console.log('Response status:', response.status); // Debug log
-        console.log('Response data:', data); // Debug log
-
-        if (!response.ok) {
-            throw new Error(data.error || `HTTP ${response.status}`);
-        }
-
-        return data;
-    } catch (error) {
-        console.error('Fetching Error:', error);
-        throw new Error(`Failed to fetch weather data: ${error.message}`);
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+        return response.json();
+    } catch (err) {
+        console.error('Fetch error:', err);
+        throw err;
     }
 }
 
@@ -129,10 +119,15 @@ async function updateForecastInfo(city) {
     const today = new Date().toISOString().split('T')[0];
     forecastItemsContainer.innerHTML = '';
 
+    const seenDates = new Set();
     let count = 0;
+
     for (const entry of forecastData.list) {
-        if (entry.dt_txt.includes('12:00:00') && !entry.dt_txt.includes(today)) {
+        const [date, time] = entry.dt_txt.split(' ');
+
+        if (time === '12:00:00' && !seenDates.has(date)) {
             updateForecastItems(entry);
+            seenDates.add(date);
             if (++count === 5) break;
         }
     }
